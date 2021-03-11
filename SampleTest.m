@@ -71,3 +71,33 @@ xlabel('Freq (Hz)')
 legend([L1,L2],'Thermocouple','OpSens')
 set(gca,'box','off')
 axis tight
+
+% mean subtract to remove slow drift
+filtThermocoup = filtThermocoup - mean(filtThermocoup);
+ % [time band width, number of tapers]
+tapers_r = [2,3];
+movingwin_r = [3.33,1];
+% Frame rate
+params_r.Fs = fs;
+params_r.fpass = [1,5];
+params_r.tapers = tapers_r;
+[Sr,tr,fr] = mtspecgramc(filtThermocoup,movingwin_r,params_r);
+% Sr: spectrum; tr: time; fr: frequency
+% largest elements along the frequency direction
+[~,ridx] = max(Sr,[],2);
+HR = fr(ridx);   % heart rate, in Hz
+
+% mean subtract to remove slow drift
+filtOpsens = filtOpsens - mean(filtOpsens);
+ % [time band width, number of tapers]
+tapers_r = [2,3];
+movingwin_r = [3.33,1];
+% Frame rate
+params_r.Fs = fs;
+params_r.fpass = [1,5];
+params_r.tapers = tapers_r;
+[Sr2,tr2,fr2] = mtspecgramc(filtOpsens,movingwin_r,params_r);
+% Sr: spectrum; tr: time; fr: frequency
+% largest elements along the frequency direction
+[~,ridx] = max(Sr2,[],2);
+HR_opsens = fr(ridx);   % heart rate, in Hz
