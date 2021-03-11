@@ -1,0 +1,73 @@
+clear; clc; close all;
+%% load sample data file from 3/10/21
+fileName = 'SampleData.mat';
+load(fileName,'-mat');
+thermocoup = SampleData.thermocoupleRespiration;
+opsens = SampleData.opsensRespiration;
+fs = SampleData.samplingRate;
+%% plot figure showing raw signals
+rawData = figure('Name','Raw Data','NumberTitle','off');
+ax1 = subplot(2,1,1);
+plot((1:length(thermocoup))/fs,thermocoup,'b')
+title('Respiration from Thermocouple Temperature')
+ylabel('Amp. Voltage (a.u.)')
+xlabel('Time (s)')
+set(gca,'box','off')
+axis tight
+ax1.TickLength = [0.03,0.03];
+ax2 = subplot(2,1,2);
+plot((1:length(opsens))/fs,opsens,'k')
+title('Respiration from Opsense Pressure')
+ylabel('Amp. Voltage (a.u.)')
+xlabel('Time (s)')
+set(gca,'box','off')
+axis tight
+ax2.TickLength = [0.03,0.03];
+% link axes for scrolling
+linkaxes([ax1,ax2],'x')
+%% plot figure showing lowpass filtered signals
+[z,p,k] = butter(4,10/(fs/2),'low');
+[sos,g] = zp2sos(z,p,k);
+filtThermocoup = detrend(filtfilt(sos,g,thermocoup - thermocoup(1)) + thermocoup(1),'constant');
+filtOpsens = detrend(filtfilt(sos,g,opsens - opsens(1)) + opsens(1),'constant');
+% plot
+procData = figure('Name','Filtered Data','NumberTitle','off');
+ax3 = subplot(2,1,1);
+plot((1:length(filtThermocoup))/fs,filtThermocoup,'b')
+title('Filtered Thermocouple Temperature (10 Hz LP)')
+ylabel('Amp. Voltage (a.u.)')
+xlabel('Time (s)')
+set(gca,'box','off')
+axis tight
+ax3.TickLength = [0.03,0.03];
+ax4 = subplot(2,1,2);
+plot((1:length(filtOpsens))/fs,filtOpsens,'k')
+title('Filtered Opsense Pressure (10 Hz LP)')
+ylabel('Amp. Voltage (a.u.)')
+xlabel('Time (s)')
+set(gca,'box','off')
+axis tight
+ax4.TickLength = [0.03,0.03];
+% link axes for scrolling
+linkaxes([ax3,ax4],'x')
+%% plot figure showing normalized power spectra
+params.tapers = [1,1];
+params.pad = 0;
+params.Fs = fs;
+params.fpass = [0,10];
+params.trialave = 1;
+params.err = [2,0.05];
+[thermocoup_S,thermocoup_f,~] = mtspectrumc(filtThermocoup,params);
+thermocoup_S = thermocoup_S/max(thermocoup_S);
+[opsens_S,opsens_f,~] = mtspectrumc(filtOpsens,params);
+opsens_S = opsens_S/max(opsens_S);
+powerSpec = figure('Name','Power Spectra','NumberTitle','off');
+L2 = semilogx(opsens_f,opsens_S,'k');
+hold on
+L1 = semilogx(thermocoup_f,thermocoup_S,'b');
+title('Respiration powerspectra (0-10 Hz)')
+ylabel('Normalized by peak power (a.u.)')
+xlabel('Freq (Hz)')
+legend([L1,L2],'Thermocouple','OpSens')
+set(gca,'box','off')
+axis tight
